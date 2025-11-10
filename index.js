@@ -29,9 +29,29 @@ async function run() {
 
     const db = client.db("utility_db");
     const billsCollection = db.collection("bills");
+    const usersCollection = db.collection("users");
+
+    app.post("/users", async (req, res) => {
+      const newUser = req.body;
+      const email = req.body.email;
+      const query = { email: email };
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        res.send({ message: "User exists!" });
+      } else {
+        const result = await usersCollection.insertOne(newUser);
+        res.send(result);
+      }
+    });
 
     app.get("/bills", async (req, res) => {
-      const cursor = billsCollection.find();
+      console.log(req.query);
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.email = email;
+      }
+      const cursor = billsCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
