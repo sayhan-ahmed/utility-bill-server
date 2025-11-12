@@ -30,7 +30,9 @@ async function run() {
     const db = client.db("utility_db");
     const billsCollection = db.collection("bills");
     const usersCollection = db.collection("users");
+    const paymentsCollection = db.collection("payments");
 
+    // users APIs
     app.post("/users", async (req, res) => {
       const newUser = req.body;
       const email = req.body.email;
@@ -44,14 +46,34 @@ async function run() {
       }
     });
 
+    // bills APIs
     app.get("/bills", async (req, res) => {
       console.log(req.query);
       const email = req.query.email;
+      const category = req.query.category;
       const query = {};
       if (email) {
         query.email = email;
       }
+      if (category) {
+        query.category = category;
+      }
       const cursor = billsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // API to save a payment
+    app.post("/payments", async (req, res) => {
+      const paymentInfo = req.body;
+      paymentInfo.paymentDate = new Date();
+      const result = await paymentsCollection.insertOne(paymentInfo);
+      res.send(result);
+    });
+
+    // recent bill
+    app.get("/recent-bills", async (req, res) => {
+      const cursor = billsCollection.find().sort({ date: -1 }).limit(6);
       const result = await cursor.toArray();
       res.send(result);
     });
