@@ -5,6 +5,10 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
+// middleware
+app.use(cors());
+app.use(express.json());
+
 const uri = process.env.MONGODB_URI;
 if (!uri) {
   console.error("MONGODB_URI is not set in the environment.");
