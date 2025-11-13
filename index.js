@@ -102,18 +102,35 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/bills/:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedBill = req.body;
-      const query = { _id: new ObjectId(id) };
-      const update = {
-        $set: {
-          name: updatedBill.name,
-          amount: updatedBill.amount,
-        },
-      };
-      const result = await billsCollection.updateOne(query, update);
-      res.send(result);
+    // Update payment
+    app.patch("/payments/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updates = req.body;
+
+        const allowed = {};
+        if (updates.amount) allowed.amount = updates.amount;
+        if (updates.Address) allowed.Address = updates.Address;
+        if (updates.Phone) allowed.Phone = updates.Phone;
+        if (updates.date) allowed.date = updates.date;
+
+        const result = await paymentsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: allowed }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send("Payment not found");
+        }
+
+        const updated = await paymentsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        res.send(updated);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send("Update failed");
+      }
     });
 
     app.delete("/bills/:id", async (req, res) => {
