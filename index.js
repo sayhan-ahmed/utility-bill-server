@@ -133,11 +133,20 @@ async function run() {
       }
     });
 
-    app.delete("/bills/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await billsCollection.deleteOne(query);
-      res.send(result);
+    // Delete payment by id
+    app.delete("/payments/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await paymentsCollection.deleteOne(query);
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ message: "Payment not found" });
+        }
+        res.send({ message: "Deleted", deletedId: id });
+      } catch (err) {
+        console.error("DELETE /payments/:id error:", err);
+        res.status(500).send({ message: "Delete failed" });
+      }
     });
 
     // Send a ping to confirm a successful connection
