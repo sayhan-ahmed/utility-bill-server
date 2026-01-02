@@ -29,7 +29,7 @@ app.get("/", (req, res) => {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     const db = client.db("utility_db");
     const billsCollection = db.collection("bills");
@@ -38,63 +38,98 @@ async function run() {
 
     // users APIs
     app.post("/users", async (req, res) => {
-      const newUser = req.body;
-      const email = req.body.email;
-      const query = { email: email };
-      const existingUser = await usersCollection.findOne(query);
-      if (existingUser) {
-        res.send({ message: "User exists!" });
-      } else {
+      try {
+        const newUser = req.body;
+        const email = req.body.email;
+        if (!email) {
+          return res.status(400).send({ message: "Email is required" });
+        }
+        const query = { email: email };
+        const existingUser = await usersCollection.findOne(query);
+        if (existingUser) {
+          return res
+            .status(200)
+            .send({ message: "User already exists", exists: true });
+        }
         const result = await usersCollection.insertOne(newUser);
-        res.send(result);
+        res.status(201).send(result);
+      } catch (err) {
+        console.error("POST /users error:", err);
+        res.status(500).send({ message: "Failed to create user" });
       }
     });
 
     // bills APIs
     app.get("/bills", async (req, res) => {
-      console.log(req.query);
-      const email = req.query.email;
-      const category = req.query.category;
-      const query = {};
-      if (email) {
-        query.email = email;
+      try {
+        const email = req.query.email;
+        const category = req.query.category;
+        const query = {};
+        if (email) query.email = email;
+        if (category) query.category = category;
+
+        const result = await billsCollection.find(query).toArray();
+        res.send(result);
+      } catch (err) {
+        console.error("GET /bills error:", err);
+        res.status(500).send({ message: "Failed to fetch bills" });
       }
-      if (category) {
-        query.category = category;
-      }
-      const cursor = billsCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
     });
 
     // recent bill
     app.get("/recent-bills", async (req, res) => {
-      const cursor = billsCollection.find().sort({ date: -1 }).limit(6);
-      const result = await cursor.toArray();
-      res.send(result);
+      try {
+        const result = await billsCollection
+          .find()
+          .sort({ date: -1 })
+          .limit(6)
+          .toArray();
+        res.send(result);
+      } catch (err) {
+        console.error("GET /recent-bills error:", err);
+        res.status(500).send({ message: "Failed to fetch recent bills" });
+      }
     });
 
     // get specific bill by id
     app.get("/bills/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await billsCollection.findOne(query);
-      res.send(result);
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await billsCollection.findOne(query);
+        if (!result) {
+          return res.status(404).send({ message: "Bill not found" });
+        }
+        res.send(result);
+      } catch (err) {
+        console.error("GET /bills/:id error:", err);
+        res.status(500).send({ message: "Failed to fetch bill" });
+      }
     });
 
     // post a bill
     app.post("/bills", async (req, res) => {
-      const newBill = req.body;
-      const result = await billsCollection.insertOne(newBill);
-      res.send(result);
+      try {
+        const newBill = req.body;
+        const result = await billsCollection.insertOne(newBill);
+        res.status(201).send(result);
+      } catch (err) {
+        console.error("POST /bills error:", err);
+        res.status(500).send({ message: "Failed to add bill" });
+      }
     });
 
     // API to save a payment
     app.post("/payments", async (req, res) => {
-      const paymentInfo = req.body;
-      paymentInfo.paymentDate = new Date();
-      const result = await paymentsCollection.insertOne(paymentInfo);
-      res.send(result);
+      try {
+        const paymentInfo = req.body;
+        paymentInfo.paymentDate = new Date();
+        const result = await paymentsCollection.insertOne(paymentInfo);
+        res.status(201).send(result);
+      } catch (err) {
+        console.error("POST /payments error:", err);
+        res.status(500).send({ message: "Failed to save payment" });
+      }
     });
 
     // API to get payments for a specific user
@@ -156,7 +191,7 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
